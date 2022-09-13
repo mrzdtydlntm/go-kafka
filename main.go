@@ -3,30 +3,23 @@ package main
 
 import (
 	"log"
+	"os"
 	"watermillTutorial/controllers"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	errEnv := godotenv.Load(".env")
+	if errEnv != nil {
+		log.Fatalf("Error read env file with err: %s", errEnv)
+	}
 	var (
-		host          string = "34.66.147.156:9092"
-		topic         string = "allobank"
-		consumerGroup string = "allobank-group"
+		host          string = os.Getenv("KAFKA_HOST")
+		topic         string = os.Getenv("KAFKA_TOPIC")
+		consumerGroup string = os.Getenv("KAFKA_CONSUMER_GROUP")
 	)
 
+	controllers.SubscribeFromKafka(host, consumerGroup, topic)
 	controllers.PublishToKafka(host, topic)
-
-	go process(controllers.SubscribeFromKafka(host, consumerGroup))
-
-}
-
-func process(messages <-chan *message.Message) {
-	for msg := range messages {
-		log.Printf("received message: %s, payload: %s", msg.UUID, string(msg.Payload))
-
-		// we need to Acknowledge that we received and processed the message,
-		// otherwise, it will be resent over and over again.
-		msg.Ack()
-	}
 }
